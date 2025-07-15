@@ -153,7 +153,7 @@ const CXMaturityQuiz = () => {
   }
 
   // Função para enviar dados para Google Sheets via webhook
-  async function sendResultsToSheet(data: any) {
+  async function sendResultsToSheet(data: unknown) {
     setIsSending(true)
     try {
       const response = await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
