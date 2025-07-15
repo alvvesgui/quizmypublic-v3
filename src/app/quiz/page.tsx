@@ -29,9 +29,9 @@ const CXMaturityQuiz = () => {
       title: "ESTRATÉGIA",
       icon: <Target className="w-6 h-6" />,
       questions: [
-        "CX está integrado ao planejamento estratégico da marca?",
+        "O CX da sua empresa está integrado ao planejamento estratégico?",
         "Existem métricas específicas de experiência atreladas a resultados de negócio?",
-        "Liderança executiva participa ativamente de decisões sobre customer journey?",
+        "Todas as lideranças de empresa participam de decisões sobre CX?",
       ],
     },
     {
@@ -39,25 +39,25 @@ const CXMaturityQuiz = () => {
       icon: <BarChart3 className="w-6 h-6" />,
       questions: [
         "Dados de diferentes touchpoints são integrados em visão única do cliente?",
-        "Equipes trabalham colaborativamente ou em silos funcionais?",
-        "Processos são desenhados a partir da perspectiva do cliente?",
+        "Há equipes multiciplinares de CX ou há apenas um departamento com essa atribuição?",
+        "Os processos são desenhados a partir da perspectiva do cliente?",
       ],
     },
     {
       title: "TECNOLOGIA",
       icon: <Cpu className="w-6 h-6" />,
       questions: [
-        "Plataformas tecnológicas permitem personalização em escala?",
-        "IA é aplicada para antecipar necessidades do cliente?",
-        "Automação preserva humanização nos momentos críticos?",
+        "Sua empresa possui  plataformas que permitem personalização de soluções em escala para seus clientes?",
+        "Há aplicação de IA para permitir antecipação às necessidades dos clientes?",
+        "As automações de atendimento preservam a  humanização em momentos críticos?",
       ],
     },
     {
       title: "CULTURA",
       icon: <Users className="w-6 h-6" />,
       questions: [
-        "Colaboradores compreendem impacto individual na experiência total?",
-        "Organização aprende e evolui com feedback dos clientes?",
+        "A empresa possui programas de capacitação multi departamentais para CX?",
+        "Há programa de escuta ativa compartilhado entre vários canais?",
         "Inovação em CX é incentivada e recompensada?",
       ],
     },
