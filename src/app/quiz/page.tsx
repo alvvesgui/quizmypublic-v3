@@ -8,12 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-// Coloque aqui sua URL do webhook do Google Sheets
-const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxjEh0Uyb4tmqlk2d3etfUZg1zMm7w6-N7ShZEUMB6OrNzmcAIQRng6xqvEJBwSeEwh/exec"
-
 const CXMaturityQuiz = () => {
   const [currentSection, setCurrentSection] = useState(0)
-  const [answers, setAnswers] = useState<{ [key: number]: boolean }>({})
+  const [answers, setAnswers] = useState<Record<number, boolean>>({})
   const [showResults, setShowResults] = useState(false)
   const [showForm, setShowForm] = useState(true)
   const [formData, setFormData] = useState({
@@ -29,7 +26,7 @@ const CXMaturityQuiz = () => {
       title: "ESTRATÉGIA",
       icon: <Target className="w-6 h-6" />,
       questions: [
-        "O CX da sua empresa está integrado ao planejamento estratégico?",
+        "O cx de sua empresa está integrado ao planejamento estratégico?",
         "Existem métricas específicas de experiência atreladas a resultados de negócio?",
         "Todas as lideranças de empresa participam de decisões sobre CX?",
       ],
@@ -39,7 +36,7 @@ const CXMaturityQuiz = () => {
       icon: <BarChart3 className="w-6 h-6" />,
       questions: [
         "Dados de diferentes touchpoints são integrados em visão única do cliente?",
-        "Há equipes multiciplinares de CX ou há apenas um departamento com essa atribuição?",
+        "Há equipes multidisciplinares de CX ou há apenas um departamento com essa atribuição?",
         "Os processos são desenhados a partir da perspectiva do cliente?",
       ],
     },
@@ -47,9 +44,9 @@ const CXMaturityQuiz = () => {
       title: "TECNOLOGIA",
       icon: <Cpu className="w-6 h-6" />,
       questions: [
-        "Sua empresa possui  plataformas que permitem personalização de soluções em escala para seus clientes?",
+        "Sua empresa possui plataformas que permitem personalização de soluções em escala para seus clientes?",
         "Há aplicação de IA para permitir antecipação às necessidades dos clientes?",
-        "As automações de atendimento preservam a  humanização em momentos críticos?",
+        "As automações de atendimento preservam a humanização em momentos críticos?",
       ],
     },
     {
@@ -102,11 +99,10 @@ const CXMaturityQuiz = () => {
     },
   ]
 
-  const handleAnswer = (questionIndex: number, value: boolean) => {
-    const globalQuestionIndex = currentSection * 3 + questionIndex
+  const setGlobalAnswer = (globalIndex: number, value: boolean) => {
     setAnswers((prev) => ({
       ...prev,
-      [globalQuestionIndex]: value,
+      [globalIndex]: value,
     }))
   }
 
@@ -123,18 +119,37 @@ const CXMaturityQuiz = () => {
   }
 
   const canProceed = () => {
-    const sectionStart = currentSection * 3
-    const sectionEnd = sectionStart + 3
+    const questionsCount = sections[currentSection].questions.length
+    const sectionStart = currentSection * questionsCount
+    const sectionEnd = sectionStart + questionsCount
     for (let i = sectionStart; i < sectionEnd; i++) {
       if (answers[i] === undefined) return false
     }
     return true
   }
 
-  const nextSection = () => {
+  const nextSection = async () => {
     if (currentSection < sections.length - 1) {
       setCurrentSection(currentSection + 1)
     } else {
+      const allQuestions = sections.flatMap((section) => section.questions)
+      const answersArray = allQuestions.map((question, index) => {
+        return answers[index] === true ? "SIM" : "NÃO"
+      })
+
+      const payload = {
+        date: new Date().toISOString(),
+        name: formData.name,
+        email: formData.email,
+        whatsapp: formData.whatsapp,
+        companyName: formData.companyName,
+        answers: answersArray,
+        score: getScore(),
+        maturityLevel: getMaturityLevel().level,
+      }
+
+      await sendResultsToSheet(payload)
+
       setShowResults(true)
     }
   }
@@ -143,7 +158,7 @@ const CXMaturityQuiz = () => {
     setCurrentSection(0)
     setAnswers({})
     setShowResults(false)
-    setShowForm(true) // Go back to the form
+    setShowForm(true)
     setFormData({ name: "", email: "", whatsapp: "", companyName: "" })
   }
 
@@ -152,42 +167,38 @@ const CXMaturityQuiz = () => {
     setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
-  // Função para enviar dados para Google Sheets via webhook
-  async function sendResultsToSheet(data: unknown) {
-    setIsSending(true)
+  async function sendResultsToSheet(data: {
+    date: string
+    name: string
+    email: string
+    whatsapp: string
+    companyName: string
+    answers: string[]
+    score: number
+    maturityLevel: string
+  }) {
+    setIsSending(true) // Inicia o estado de envio
     try {
-      const response = await fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+      await fetch("https://script.google.com/macros/s/AKfycbz4Mrtqp3bFKPNa8VpDn8DDto0WYyTivoZPlEn2EPzUXw8aTyabtjpEQBKY7OIO2zZW/exec", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(data),
       })
-      if (!response.ok) {
-        console.error("Erro ao enviar dados para Google Sheets:", response.statusText)
-      } else {
-        console.log("Dados enviados com sucesso para o Google Sheets!")
-      }
     } catch (error) {
-      console.error("Erro ao enviar dados:", error)
+      console.error("Erro ao enviar para o Google Sheets:", error) // Mantive este console.error para tratamento de erros
+    } finally {
+      setIsSending(false) // Finaliza o estado de envio
     }
-    setIsSending(false)
   }
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Monta o objeto com os dados para enviar
-    const payload = {
-      date: new Date().toISOString(),
-      name: formData.name,
-      email: formData.email,
-      whatsapp: formData.whatsapp,
-      companyName: formData.companyName,
-      answers,
-      score: getScore(),
-      maturityLevel: getMaturityLevel().level,
-    }
-
-    console.log("Formulário enviado:", payload)
-    sendResultsToSheet(payload)
+    setIsSending(true)
+    await new Promise(resolve => setTimeout(resolve, 500)) // Pequeno atraso para UX
+    setIsSending(false)
     setShowForm(false)
   }
 
@@ -195,7 +206,6 @@ const CXMaturityQuiz = () => {
     return (
       <div className="min-h-screen bg-[#0043FF] p-4 flex flex-col items-center justify-center">
         <div className="max-w-4xl mx-auto w-full flex flex-col items-center">
-          {/* Header with Logo and Text */}
           <div className="flex items-center justify-center md:justify-start w-full mb-8 px-4">
             <Image src="/logo-conarec.png" alt="Logo Conarec" width={150} height={40} className="h-10 w-auto mr-6" />
             <p className="text-white text-lg md:text-xl font-semibold text-center md:text-left max-w-2xl">
@@ -204,24 +214,23 @@ const CXMaturityQuiz = () => {
             </p>
           </div>
 
-          {/* Form Card */}
           <Card className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-8">
             <CardContent>
-              <form onSubmit={handleFormSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-6"> {/* Espaçamento aumentado aqui */}
                 <div>
-                  <Label htmlFor="name">Nome</Label>
+                  <Label htmlFor="name" className="mb-2 block">Nome:</Label> {/* Adicionado `mb-2 block` */}
                   <Input id="name" type="text" value={formData.name} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="email" className="mb-2 block">E-mail:</Label> {/* Adicionado `mb-2 block` */}
                   <Input id="email" type="email" value={formData.email} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="whatsapp">WhatsApp com DDD</Label>
+                  <Label htmlFor="whatsapp" className="mb-2 block">WhatsApp (com DDD):</Label> {/* Adicionado `mb-2 block` */}
                   <Input id="whatsapp" type="tel" value={formData.whatsapp} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="companyName">Nome da empresa</Label>
+                  <Label htmlFor="companyName" className="mb-2 block">Nome da empresa:</Label> {/* Adicionado `mb-2 block` */}
                   <Input
                     id="companyName"
                     type="text"
@@ -235,7 +244,7 @@ const CXMaturityQuiz = () => {
                   disabled={isSending}
                   className="w-full bg-[#05D305] hover:bg-[#04B004] text-white"
                 >
-                  {isSending ? "Enviando..." : "Iniciar Quiz"}
+                  {isSending ? "Iniciando..." : "Iniciar Quiz"}
                 </Button>
               </form>
             </CardContent>
@@ -252,7 +261,6 @@ const CXMaturityQuiz = () => {
     return (
       <div className="min-h-screen bg-[#0043FF] p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Header with Logo */}
           <div className="text-center mb-8">
             <Image src="/logo-conarec.png" alt="Logo Conarec" width={200} height={60} className="mx-auto h-16 w-auto" />
           </div>
@@ -270,7 +278,6 @@ const CXMaturityQuiz = () => {
               Foco de Desenvolvimento: {maturityLevel.focus}
             </p>
           </div>
-          {/* Score Breakdown */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Análise por Dimensão</h3>
             <div className="grid md:grid-cols-4 gap-4">
@@ -290,12 +297,10 @@ const CXMaturityQuiz = () => {
               })}
             </div>
           </div>
-          {/* Call to Action */}
           <div className="bg-white rounded-xl p-8 text-center text-gray-800">
             <h3 className="text-2xl font-bold mb-4">Evolua o nível de maturidade CX da sua marca</h3>
             <p className="text-gray-600 mb-6 leading-relaxed max-w-2xl mx-auto">
-              No CONAREC 2025, maturidade organizacional evolui através de networking estratégico, insights aplicáveis e
-              exposição a práticas de referência mundial.
+              Eleve a maturidade de CX na sua empresa ao nível máximo! Garanta sua vaga no CONAREC 2025, o maior evento de CX do mundo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -308,7 +313,7 @@ const CXMaturityQuiz = () => {
                 onClick={() => window.open("https://conarec.com.br", "_blank")}
                 className="px-6 py-3 bg-[#05D305] text-white rounded-lg font-medium hover:bg-[#04B004] transition-colors"
               >
-                Descobrir Trilhas CONAREC
+                Descubra o CONAREC 2025
               </Button>
             </div>
           </div>
@@ -320,12 +325,9 @@ const CXMaturityQuiz = () => {
   return (
     <div className="min-h-screen bg-[#0043FF] p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header with Logo - Centralized */}
         <div className="text-center mb-8">
           <Image src="/logo-conarec.png" alt="Logo Conarec" width={150} height={40} className="mx-auto h-10 w-auto" />
         </div>
-
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <span className="text-sm font-medium text-white">
@@ -342,8 +344,6 @@ const CXMaturityQuiz = () => {
             />
           </div>
         </div>
-
-        {/* Quiz Section */}
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="flex items-center mb-6">
             <div className="w-12 h-12 bg-[#0043FF] rounded-full flex items-center justify-center mr-4">
@@ -352,34 +352,34 @@ const CXMaturityQuiz = () => {
             <h3 className="text-2xl font-bold text-gray-800">{sections[currentSection].title}</h3>
           </div>
           <div className="space-y-6">
-            {sections[currentSection].questions.map((question, questionIndex) => {
-              const globalQuestionIndex = currentSection * 3 + questionIndex
+            {sections[currentSection].questions.map((question, questionIndexInSection) => {
+              const globalQuestionIndex =
+                currentSection * sections[currentSection].questions.length + questionIndexInSection
               const answer = answers[globalQuestionIndex]
-
               return (
-                <div key={questionIndex} className="border border-gray-200 rounded-lg p-6">
+                <div key={globalQuestionIndex} className="border border-gray-200 rounded-lg p-6">
                   <h4 className="text-xl md:text-2xl font-medium text-gray-800 mb-4">
-                    {currentSection * 3 + questionIndex + 1}. {question}
+                    {globalQuestionIndex + 1}. {question}
                   </h4>
-
                   <div className="flex gap-4">
                     <button
-                      onClick={() => handleAnswer(questionIndex, true)}
+                      type="button"
+                      onClick={() => setGlobalAnswer(globalQuestionIndex, true)}
                       className={`flex items-center px-6 py-3 rounded-lg border-2 transition-all text-lg ${
                         answer === true
-                          ? "border-[#05D305] bg-[#05D305]/10 text-[#05D305]"
+                          ? "bg-[#05D305] text-white"
                           : "border-gray-200 hover:border-[#05D305]/50 text-gray-600"
                       }`}
                     >
                       {answer === true ? <CheckCircle className="w-5 h-5 mr-2" /> : <Circle className="w-5 h-5 mr-2" />}
                       SIM
                     </button>
-
                     <button
-                      onClick={() => handleAnswer(questionIndex, false)}
+                      type="button"
+                      onClick={() => setGlobalAnswer(globalQuestionIndex, false)}
                       className={`flex items-center px-6 py-3 rounded-lg border-2 transition-all text-lg ${
                         answer === false
-                          ? "border-red-500 bg-red-500/10 text-red-700"
+                          ? "bg-red-500 text-white"
                           : "border-gray-200 hover:border-red-300 text-gray-600"
                       }`}
                     >
@@ -403,7 +403,6 @@ const CXMaturityQuiz = () => {
             >
               Anterior
             </Button>
-
             <Button
               onClick={nextSection}
               disabled={!canProceed()}
