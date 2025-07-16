@@ -177,7 +177,7 @@ const CXMaturityQuiz = () => {
     score: number
     maturityLevel: string
   }) {
-    setIsSending(true) // Inicia o estado de envio
+    setIsSending(true)
     try {
       await fetch("https://script.google.com/macros/s/AKfycbz4Mrtqp3bFKPNa8VpDn8DDto0WYyTivoZPlEn2EPzUXw8aTyabtjpEQBKY7OIO2zZW/exec", {
         method: "POST",
@@ -188,16 +188,16 @@ const CXMaturityQuiz = () => {
         body: JSON.stringify(data),
       })
     } catch (error) {
-      console.error("Erro ao enviar para o Google Sheets:", error) // Mantive este console.error para tratamento de erros
+      console.error("Erro ao enviar para o Google Sheets:", error)
     } finally {
-      setIsSending(false) // Finaliza o estado de envio
+      setIsSending(false)
     }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSending(true)
-    await new Promise(resolve => setTimeout(resolve, 500)) // Pequeno atraso para UX
+    await new Promise(resolve => setTimeout(resolve, 500))
     setIsSending(false)
     setShowForm(false)
   }
@@ -210,27 +210,28 @@ const CXMaturityQuiz = () => {
             <Image src="/logo-conarec.png" alt="Logo Conarec" width={150} height={40} className="h-10 w-auto mr-6" />
             <p className="text-white text-lg md:text-xl font-semibold text-center md:text-left max-w-2xl">
               Descubra se o CX de sua empresa gera valor real para seus consumidores. Informe seus dados abaixo e
-              responda o quiz:
+              responda o quiz!
             </p>
           </div>
 
           <Card className="w-full max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 mt-8">
             <CardContent>
-              <form onSubmit={handleFormSubmit} className="space-y-6"> {/* Espaçamento aumentado aqui */}
+              <h2 className="text-2xl font-bold text-black mb-6 text-center">Informe seus dados</h2>
+              <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="name" className="mb-2 block">Nome:</Label> {/* Adicionado `mb-2 block` */}
+                  <Label htmlFor="name" className="mb-2 block">Nome:</Label>
                   <Input id="name" type="text" value={formData.name} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="email" className="mb-2 block">E-mail:</Label> {/* Adicionado `mb-2 block` */}
+                  <Label htmlFor="email" className="mb-2 block">E-mail:</Label>
                   <Input id="email" type="email" value={formData.email} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="whatsapp" className="mb-2 block">WhatsApp (com DDD):</Label> {/* Adicionado `mb-2 block` */}
+                  <Label htmlFor="whatsapp" className="mb-2 block">WhatsApp (com DDD):</Label>
                   <Input id="whatsapp" type="tel" value={formData.whatsapp} onChange={handleFormChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="companyName" className="mb-2 block">Nome da empresa:</Label> {/* Adicionado `mb-2 block` */}
+                  <Label htmlFor="companyName" className="mb-2 block">Nome da empresa:</Label>
                   <Input
                     id="companyName"
                     type="text"
@@ -413,7 +414,7 @@ const CXMaturityQuiz = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div> // Esta div final estava faltando!
   )
 }
 
